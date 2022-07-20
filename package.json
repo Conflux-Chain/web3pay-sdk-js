@@ -5,11 +5,13 @@
   "repository": "git@github.com:Tigo9527/web3pay-user-demo.git",
   "license": "MIT",
   "scripts": {
-    "provider": "ts-node provider/SimpleServer.ts"
+    "provider": "ts-node provider/SimpleServer.ts",
+    "consumer": "ts-node consumer/SimpleClient.ts"
   },
   "dependencies": {
     "dotenv": "^16.0.1",
-    "ethers": "^5.6.9"
+    "ethers": "^5.6.9",
+    "typed-rest-client": "^1.8.9"
   },
   "devDependencies": {
     "@types/node": "^18.0.6",
