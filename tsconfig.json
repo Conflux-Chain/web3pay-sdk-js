@@ -1,0 +1,6 @@
+{
+  "extends": "@tsconfig/node16/tsconfig.json",
+  "compilerOptions": {},
+  "include": ["provider", "consumer"],
+  "exclude": ["node_modules"]
+}
