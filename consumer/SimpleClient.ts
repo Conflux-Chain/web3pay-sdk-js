@@ -25,14 +25,12 @@ async function main() {
 	const rpcInfo: ConnectionInfo = {
 		url: `http://localhost:${port}`,
 		headers: {
-			"seed": seed,
-			"sig": signature,
-			"key": await buildApiKey(seed, privateKey!),
+			"Customer-Key": await buildApiKey(seed, privateKey!),
 		}
 	}
 	await request(rpcInfo)
 	await request(rpcInfo, '/a-valuable-resource')
-	console.log(`api key length `, rpcInfo.headers!['key'].toString().length)
+	console.log(`api key length `, rpcInfo.headers!['Customer-Key'].toString().length)
 }
 async function request(rpcInfo: ConnectionInfo, path = '/') {
 	rpcInfo = {...rpcInfo, url: rpcInfo.url + path}

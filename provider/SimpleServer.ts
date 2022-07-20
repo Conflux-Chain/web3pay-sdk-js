@@ -1,6 +1,6 @@
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
-import {accountInfo, ethersSign} from "../lib/lib";
+import {accountInfo, buildApiKey, ethersSign} from "../lib/lib";
 import {fetchJson} from "ethers/lib/utils";
 import {HttpClient} from "typed-rest-client/HttpClient"
 
@@ -9,13 +9,11 @@ let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} 
 const client = new HttpClient("SimpleServer");
 
 // request billing service
-async function billing(app: string, path: string, dryRun:boolean, {seed:consumerSeed, sig}:{seed:string, sig:string}) {
+async function billing(app: string, path: string, dryRun:boolean, consumerHeaders:any) {
 	const seed = app;
 	const headers = {
-		"App-Contract": app,
-		"Owner-Signature": await ethersSign(seed, pk!),
-		"App-Nonce": consumerSeed,
-		"Customer-Signature":sig
+		"Billing-Key": await buildApiKey(seed, pk!),
+		"Customer-Key": consumerHeaders['customer-key'],
 	}
 	const data = {
 		resourceId: path,
