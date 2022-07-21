@@ -2,3 +2,10 @@
 /.idea
 /local
 /pkg-test
+/node_modules
+/consumer/*.d.ts
+/consumer/*.js
+/provider/*.d.ts
+/provider/*.js
+/lib/*.d.ts
+/lib/*.js
