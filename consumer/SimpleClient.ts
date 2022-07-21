@@ -1,7 +1,5 @@
-import {fetchJson} from "ethers/lib/utils";
-import {ConnectionInfo} from "@ethersproject/web/src.ts/index";
-import {ethers} from "ethers";
 import {accountInfo, balanceOf, buildApiKey, ethersSign, keypress} from "../lib/lib";
+import {ConnectionInfo, fetchJson} from "ethers/lib/utils";
 
 require('dotenv').config()
 

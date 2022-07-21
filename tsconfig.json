@@ -1,6 +1,10 @@
 {
-  "extends": "@tsconfig/node16/tsconfig.json",
-  "compilerOptions": {},
-  "include": ["provider", "consumer"],
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "declaration": true,
+    "moduleResolution": "Node"
+  },
+  "include": ["provider", "consumer", "lib"],
   "exclude": ["node_modules"]
 }
