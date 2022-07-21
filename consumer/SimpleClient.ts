@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {accountInfo, balanceOf, buildApiKey, ethersSign, keypress} from "../lib/lib";
+import {accountInfo, balanceOf, buildApiKey, deposit2app, ethersSign, keypress, tokensNet71} from "../lib/lib";
 import {ConnectionInfo, fetchJson} from "ethers/lib/utils";
 
 require('dotenv').config()
@@ -18,6 +18,8 @@ async function main() {
 
 	if (appCoin == '0.0') {
 		// await keypress(`press any key to continue`)
+		console.log(`deposit to app now...`)
+		await deposit2app(wallet, app, tokensNet71)
 	}
 
 	const {seed, signature} = await buildSignature(privateKey!, app!);
