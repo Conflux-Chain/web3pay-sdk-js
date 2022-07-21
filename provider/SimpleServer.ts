@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
 import {accountInfo, buildApiKey, ethersSign} from "../lib/lib";

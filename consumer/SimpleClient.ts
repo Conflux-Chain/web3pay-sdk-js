@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import {accountInfo, balanceOf, buildApiKey, ethersSign, keypress} from "../lib/lib";
 import {ConnectionInfo, fetchJson} from "ethers/lib/utils";
 
