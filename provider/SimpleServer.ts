@@ -13,6 +13,7 @@ const client = new HttpClient("SimpleServer");
 async function billing(app: string, path: string, dryRun:boolean, consumerHeaders:any) {
 	const seed = app;
 	const headers = {
+		"Content-Type": "application/json",
 		"Billing-Key": await buildApiKey(seed, pk!),
 		"Customer-Key": consumerHeaders['customer-key'],
 	}
