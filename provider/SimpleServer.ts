@@ -7,12 +7,13 @@ import {HttpClient} from "typed-rest-client/HttpClient"
 
 require('dotenv').config()
 let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} = process.env;
-const client = new HttpClient("SimpleServer");
+const client = new HttpClient("SimpleServer", undefined, {socketTimeout: 1000});
 
 // request billing service
 async function billing(app: string, path: string, dryRun:boolean, consumerHeaders:any) {
 	const seed = app;
 	const headers = {
+		"Content-Type": "application/json",
 		"Billing-Key": await buildApiKey(seed, pk!),
 		"Customer-Key": consumerHeaders['customer-key'],
 	}
@@ -24,7 +25,14 @@ async function billing(app: string, path: string, dryRun:boolean, consumerHeader
 		JSON.stringify(data),
 		headers)
 		.then(res=>res.readBody())
-		.then(JSON.parse)
+		.then(res=>{
+			try {
+				return JSON.parse(res)
+			} catch (e) {
+				console.log(`invalid response.`, res, e)
+				console.log(`request info, data`, data, ` headers`, headers)
+			}
+		})
 	console.log(`billing result is`, billingResult)
 	return billingResult
 }
@@ -33,11 +41,17 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 	console.log(`request ${url}`)
 
 	if (url!.startsWith("/a-valuable-resource")) {
-		let billingResult = await billing(app!, req.url!.split('?')[0], false, req.headers as any);
+		let billingResult: any;
+		try {
+			billingResult = await billing(app!, req.url!.split('?')[0], false, req.headers as any);
+		} catch (e) {
+			console.log(`billing fail`, e)
+			billingResult = {code: 500, message: `${e}`}
+		}
 		let code = 0
-		let message = 'Billing succeed!'
+		let message = 'Billing succeeded!'
 		if (billingResult.code) {
-			message = `Billing failed`
+			message = `Billing failed: ${billingResult.message}`
 		}
 
 		res.writeHead(200);
