@@ -11,7 +11,8 @@ export const tokensNet71 = {
 }
 
 const abi = [
-	"function balanceOf(address account) view returns (uint)",
+	"function balanceOfWithAirdrop(address account) view returns (uint)",
+	"function balanceOf(address account, uint tokenId) view returns (uint)",
 	"function name() view returns (string)",
 	"function apiCoin() view returns (address)",
 
@@ -26,14 +27,14 @@ export async function deposit2app(wallet: Wallet, app: string, config: any) {
 	const api = new  ethers.Contract(apiAddr, abi, wallet)
 	const {__router: swapRouter, wcfx, usdt} = config
 	const receipt = await api.depositNativeValue(
-		swapRouter, parseEther("0.001"),
-		[wcfx, usdt], app, getDeadline(), {value: parseEther("0.1")}
+		swapRouter, parseEther("0.02"),
+		[wcfx, usdt], app, getDeadline(), {value: parseEther("1")}
 	).then(tx=>tx.wait());
 	console.log(`deposit tx hash ${receipt.transactionHash}`)
 }
 export async function balanceOf(app: string, account: string, rpcEndpoint: string) {
 	const contract = new ethers.Contract(app, abi, ethers.getDefaultProvider(rpcEndpoint))
-	const balance = await contract.balanceOf(account).then(formatEther)
+	const balance = await contract.balanceOf(account, 0).then(formatEther)
 	const name = await contract.name()
 	console.log(`balance of ${account} , contract ${app} [${name}] , `, balance)
 	return balance
