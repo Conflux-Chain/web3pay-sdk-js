@@ -2,40 +2,10 @@
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
 import {accountInfo, buildApiKey, ethersSign} from "../lib/lib";
-import {fetchJson} from "ethers/lib/utils";
-import {HttpClient} from "typed-rest-client/HttpClient"
+import {billing, initWeb3payClient} from "../lib/rpc";
 
 require('dotenv').config()
 let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} = process.env;
-const client = new HttpClient("SimpleServer", undefined, {socketTimeout: 1000});
-
-// request billing service
-async function billing(app: string, path: string, dryRun:boolean, consumerHeaders:any) {
-	const seed = app;
-	const headers = {
-		"Content-Type": "application/json",
-		"Billing-Key": await buildApiKey(seed, pk!),
-		"Customer-Key": consumerHeaders['customer-key'],
-	}
-	const data = {
-		resourceId: path,
-		dryRun
-	}
-	const billingResult = await client.post(`${RPC_BILLING}`,
-		JSON.stringify(data),
-		headers)
-		.then(res=>res.readBody())
-		.then(res=>{
-			try {
-				return JSON.parse(res)
-			} catch (e) {
-				console.log(`invalid response.`, res, e)
-				console.log(`request info, data`, data, ` headers`, headers)
-			}
-		})
-	console.log(`billing result is`, billingResult)
-	return billingResult
-}
 async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 	const {url} = req;
 	console.log(`request ${url}`)
@@ -43,7 +13,7 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 	if (url!.startsWith("/a-valuable-resource")) {
 		let billingResult: any;
 		try {
-			billingResult = await billing(app!, req.url!.split('?')[0], false, req.headers as any);
+			billingResult = await billing(req.url!.split('?')[0], false, req.headers['customer-key']);
 		} catch (e) {
 			console.log(`billing fail`, e)
 			billingResult = {code: 500, message: `${e}`}
@@ -67,6 +37,8 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 async function main() {
 	// await billing(app!, "/test-path", {seed: "0x0979193d54bf5cd4d4958944c52ac66deede4f2a_1658298895942",
 	// 	sig: "0x5a6e7d63a320c565482dbe8c6b8afae63cbc3734ffa185536f209dfa8fa52f24608ce47f291f3285e8dc05230a31c70dd26422accbc2a723c4328e1510d72d6d1c"});
+	const key = await buildApiKey(app!, pk);
+	initWeb3payClient(RPC_BILLING, key)
 	await serve();
 }
 async function serve() {
