@@ -15,7 +15,7 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 		try {
 			billingResult = await billing(req.url!.split('?')[0], false, req.headers['customer-key']);
 		} catch (e) {
-			console.log(`billing fail`, e)
+			console.log(`billing fail ${typeof e}`, e)
 			billingResult = {code: 500, message: `${e}`}
 		}
 		let code = 0
@@ -38,7 +38,7 @@ async function main() {
 	// await billing(app!, "/test-path", {seed: "0x0979193d54bf5cd4d4958944c52ac66deede4f2a_1658298895942",
 	// 	sig: "0x5a6e7d63a320c565482dbe8c6b8afae63cbc3734ffa185536f209dfa8fa52f24608ce47f291f3285e8dc05230a31c70dd26422accbc2a723c4328e1510d72d6d1c"});
 	const key = await buildApiKey(app!, pk);
-	initWeb3payClient(RPC_BILLING, key)
+	initWeb3payClient(RPC_BILLING, key, 1000)
 	await serve();
 }
 async function serve() {

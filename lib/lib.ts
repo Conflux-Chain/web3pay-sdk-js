@@ -78,3 +78,5 @@ export const keypress = async (msg = '') => {
 		resolve(0)
 	}))
 }
+
+export {billing, initWeb3payClient} from "./rpc"

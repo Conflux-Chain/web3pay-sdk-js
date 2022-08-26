@@ -13,7 +13,7 @@ export function initWeb3payClient(billingUrl: string, billingApiKey: string, tim
     web3pay.billingApiKey = billingApiKey;
 }
 
-
+// ref error code: https://github.com/Conflux-Chain/web3pay-service/blob/main/model/error.go
 // request billing service
 export async function billing(path: string, dryRun:boolean, consumerKey) {
     const headers = {
