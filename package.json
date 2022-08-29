@@ -1,6 +1,6 @@
 {
   "name": "web3pay-sdk-js",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "main": "lib/lib.js",
   "types": "lib/lib.d.ts",
   "repository": "git@github.com:Tigo9527/web3pay-user-demo.git",
@@ -20,7 +20,7 @@
     "web3pay-provider": "provider/SimpleServer.js",
     "web3pay-consumer": "consumer/SimpleClient.js"
   },
-  "fildes-desc": "Whitelist of files which will be published to NPM repository.",
+  "files-desc": "Whitelist of files which will be published to NPM repository.",
   "files": [
     "lib/**/*",
     "provider/**/*",

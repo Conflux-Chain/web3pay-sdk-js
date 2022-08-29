@@ -29,8 +29,8 @@ async function main() {
 			"Customer-Key": await buildApiKey(seed, privateKey!),
 		}
 	}
-	await request(rpcInfo)
-	await request(rpcInfo, '/a-valuable-resource')
+	await request(rpcInfo, "?foo=bar")
+	await request(rpcInfo, '/a-valuable-resource?foo=hi')
 	console.log(`api key length `, rpcInfo.headers!['Customer-Key'].toString().length)
 }
 async function request(rpcInfo: ConnectionInfo, path = '/') {

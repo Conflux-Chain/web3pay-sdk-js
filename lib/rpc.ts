@@ -4,7 +4,9 @@ const web3pay : {client?: HttpClient, billingUrl: string, billingApiKey: string}
     client: null, billingUrl: "",
     billingApiKey: "",
 }
-
+export function getWeb3pay() {
+    return web3pay;
+}
 export function initWeb3payClient(billingUrl: string, billingApiKey: string, timeout: number = 1000, userAgent:string = "web3pay client") {
     web3pay.client = new HttpClient(userAgent,
         undefined, {socketTimeout: timeout}
