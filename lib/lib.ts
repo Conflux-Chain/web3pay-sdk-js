@@ -79,4 +79,4 @@ export const keypress = async (msg = '') => {
 	}))
 }
 
-export {billing, initWeb3payClient} from "./rpc"
+export {billing, initWeb3payClient, getWeb3pay} from "./rpc"
