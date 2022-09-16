@@ -39,11 +39,19 @@ export async function balanceOf(app: string, account: string, rpcEndpoint: strin
 	console.log(`balance of ${account} , contract ${app} [${name}] , `, balance)
 	return balance
 }
-export async function buildApiKey(msg:string, pk:string) {
+export async function buildBillingKey(msg:string, pk:string) {
 	const sig = await ethersSign(msg, pk);
 	const str = JSON.stringify({msg, sig});
 	console.log(`raw json key length `, str.length)
 	return base64.encode(Buffer.from(str))
+}
+export async function buildApiKeySignature(privateKey: string, app: string) {
+	const seed = JSON.stringify({
+		domain: "web3pay", contract: app
+	})
+	const signature = await ethersSign(seed, privateKey);
+	const base58 = ethers.utils.base58.encode(signature)
+	return {seed, signature, base58}
 }
 export async function ethersSign(msg: string, pk:string) {
 	const wallet = new ethers.Wallet(pk)

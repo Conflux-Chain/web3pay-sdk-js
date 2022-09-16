@@ -1,19 +1,24 @@
 #!/usr/bin/env node
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
-import {accountInfo, buildApiKey, ethersSign} from "../lib/lib";
+import {accountInfo, buildBillingKey} from "../lib/lib";
 import {billing, initWeb3payClient} from "../lib/rpc";
 
 require('dotenv').config()
 let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} = process.env;
+const billingUrls = new Set(["/a-valuable-resource", "/billing-1", "/billing-2", "/billing-3"])
 async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
-	const {url} = req;
+	const urlObj = new URL(req.url, `http://${req.headers.host}`)
+	const {pathname: url} = urlObj;
 	console.log(`request ${url}`)
 
-	if (url!.startsWith("/a-valuable-resource")) {
+	if (billingUrls.has(url)
+	) {
 		let billingResult: any;
 		try {
-			billingResult = await billing(req.url!.split('?')[0], false, req.headers['customer-key']);
+			let apiKey = req.headers['customer-key'];
+			console.log(`api key ${apiKey}`)
+			billingResult = await billing(url, false, apiKey);
 		} catch (e) {
 			console.log(`billing fail ${typeof e}`, e)
 			billingResult = {code: 500, message: `${e}`}
@@ -37,14 +42,14 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 async function main() {
 	// await billing(app!, "/test-path", {seed: "0x0979193d54bf5cd4d4958944c52ac66deede4f2a_1658298895942",
 	// 	sig: "0x5a6e7d63a320c565482dbe8c6b8afae63cbc3734ffa185536f209dfa8fa52f24608ce47f291f3285e8dc05230a31c70dd26422accbc2a723c4328e1510d72d6d1c"});
-	const key = await buildApiKey(app!, pk);
+	const key = await buildBillingKey(app!, pk);
 	console.log(`using billing key`, key)
 	initWeb3payClient(RPC_BILLING, key, 1000)
 	await serve();
 }
 async function serve() {
 	const server = http.createServer(requestListener);
-	console.log(`provider port is ${port}`)
+	console.log(`provider port is ${port}, base58`)
 	console.log(`app [${app}]`)
 	await accountInfo(pk!, RPC_ENDPOINT!)
 	server.listen(port);

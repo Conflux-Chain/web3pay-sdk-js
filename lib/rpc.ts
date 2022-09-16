@@ -21,7 +21,7 @@ export async function billing(path: string, dryRun:boolean, consumerKey) {
     const headers = {
         "Content-Type": "application/json",
         "Billing-Key": web3pay.billingApiKey,
-        "Customer-Key": consumerKey,
+        "Api-Key": consumerKey,
     }
     const data = {
         resourceId: path,
