@@ -12,14 +12,33 @@ export const tokensNet71 = {
 
 const abi = [
 	"function balanceOfWithAirdrop(address account) view returns (uint)",
-	"function balanceOf(address account, uint tokenId) view returns (uint)",
+	// "function balanceOf(address account, uint tokenId) view returns (uint)", //v1
 	"function name() view returns (string)",
 	"function apiCoin() view returns (address)",
 
 	"function depositNativeValue(address swap, uint amountOut, address[] calldata path, address toApp, uint deadline) public payable",
+
+	//v2
+	"function depositAsset(uint256 amount, address receiver) public",
+	"function balanceOf(address account) view returns (uint coin, uint airdrop)",
+	// v2 exchange
+	"function depositAppETH(address app, uint256 amount, address receiver) public payable",
+	"function previewDepositETH(uint256 amount) public view returns (uint256)",
 ]
 export function getDeadline(diff: number = 1000) {
 	return Math.round(Date.now()/1000 ) + diff
+}
+export function waitTx(tx:any) {
+	return tx.wait();
+}
+export async function depositEthV2(wallet: Wallet, exchange: string, app:string, config: any) {
+	const contract = new ethers.Contract(exchange, abi, wallet);
+	let appCoinAmount = parseEther("0.001");
+	const ethIn = await contract.previewDepositETH(appCoinAmount);
+	const {transactionHash} = await contract.depositAppETH(
+		app, appCoinAmount, wallet.address,
+		{value: ethIn.mul(2)}).then(waitTx);
+	console.log(`deposit eth to app ${app}, tx hash ${transactionHash}`);
 }
 export async function deposit2app(wallet: Wallet, app: string, config: any) {
 	const contract = new ethers.Contract(app, abi, wallet)
@@ -34,16 +53,25 @@ export async function deposit2app(wallet: Wallet, app: string, config: any) {
 }
 export async function balanceOf(app: string, account: string, rpcEndpoint: string) {
 	const contract = new ethers.Contract(app, abi, ethers.getDefaultProvider(rpcEndpoint))
-	const balance = await contract.balanceOf(account, 0).then(formatEther)
-	const name = await contract.name()
+	// const balance = await contract.balanceOf(account, 0).then(formatEther) // v1
+	const balance = await contract.balanceOf(account).then(([coin,])=>coin).then(formatEther) //v2
+	const name = await contract.name().catch(()=>app) // catch for v2, name() was moved to VipCoin
 	console.log(`balance of ${account} , contract ${app} [${name}] , `, balance)
 	return balance
 }
-export async function buildApiKey(msg:string, pk:string) {
+export async function buildBillingKey(msg:string, pk:string) {
 	const sig = await ethersSign(msg, pk);
 	const str = JSON.stringify({msg, sig});
 	console.log(`raw json key length `, str.length)
 	return base64.encode(Buffer.from(str))
+}
+export async function buildApiKeySignature(privateKey: string, app: string) {
+	const seed = JSON.stringify({
+		domain: "web3pay", contract: app
+	})
+	const signature = await ethersSign(seed, privateKey);
+	const base58 = ethers.utils.base58.encode(signature)
+	return {seed, signature, base58}
 }
 export async function ethersSign(msg: string, pk:string) {
 	const wallet = new ethers.Wallet(pk)
@@ -78,3 +106,5 @@ export const keypress = async (msg = '') => {
 		resolve(0)
 	}))
 }
+
+export {billing, initWeb3payClient, getWeb3pay} from "./rpc"

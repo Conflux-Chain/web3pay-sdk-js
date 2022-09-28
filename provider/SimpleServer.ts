@@ -1,51 +1,26 @@
 #!/usr/bin/env node
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
-import {accountInfo, buildApiKey, ethersSign} from "../lib/lib";
-import {fetchJson} from "ethers/lib/utils";
-import {HttpClient} from "typed-rest-client/HttpClient"
+import {accountInfo, buildBillingKey} from "../lib/lib";
+import {billing, initWeb3payClient} from "../lib/rpc";
 
 require('dotenv').config()
 let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} = process.env;
-const client = new HttpClient("SimpleServer", undefined, {socketTimeout: 1000});
-
-// request billing service
-async function billing(app: string, path: string, dryRun:boolean, consumerHeaders:any) {
-	const seed = app;
-	const headers = {
-		"Content-Type": "application/json",
-		"Billing-Key": await buildApiKey(seed, pk!),
-		"Customer-Key": consumerHeaders['customer-key'],
-	}
-	const data = {
-		resourceId: path,
-		dryRun
-	}
-	const billingResult = await client.post(`${RPC_BILLING}`,
-		JSON.stringify(data),
-		headers)
-		.then(res=>res.readBody())
-		.then(res=>{
-			try {
-				return JSON.parse(res)
-			} catch (e) {
-				console.log(`invalid response.`, res, e)
-				console.log(`request info, data`, data, ` headers`, headers)
-			}
-		})
-	console.log(`billing result is`, billingResult)
-	return billingResult
-}
+const billingUrls = new Set(["/a-valuable-resource", "/billing-1", "/billing-2", "/billing-3"])
 async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
-	const {url} = req;
+	const urlObj = new URL(req.url, `http://${req.headers.host}`)
+	const {pathname: url} = urlObj;
 	console.log(`request ${url}`)
 
-	if (url!.startsWith("/a-valuable-resource")) {
+	if (billingUrls.has(url)
+	) {
 		let billingResult: any;
 		try {
-			billingResult = await billing(app!, req.url!.split('?')[0], false, req.headers as any);
+			let apiKey = req.headers['customer-key'];
+			console.log(`api key ${apiKey}`)
+			billingResult = await billing(url, false, apiKey);
 		} catch (e) {
-			console.log(`billing fail`, e)
+			console.log(`billing fail ${typeof e}`, e)
 			billingResult = {code: 500, message: `${e}`}
 		}
 		let code = 0
@@ -67,11 +42,14 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 async function main() {
 	// await billing(app!, "/test-path", {seed: "0x0979193d54bf5cd4d4958944c52ac66deede4f2a_1658298895942",
 	// 	sig: "0x5a6e7d63a320c565482dbe8c6b8afae63cbc3734ffa185536f209dfa8fa52f24608ce47f291f3285e8dc05230a31c70dd26422accbc2a723c4328e1510d72d6d1c"});
+	const key = await buildBillingKey(app!, pk);
+	console.log(`using billing key`, key)
+	initWeb3payClient(RPC_BILLING, key, 1000)
 	await serve();
 }
 async function serve() {
 	const server = http.createServer(requestListener);
-	console.log(`provider port is ${port}`)
+	console.log(`provider port is ${port}, base58`)
 	console.log(`app [${app}]`)
 	await accountInfo(pk!, RPC_ENDPOINT!)
 	server.listen(port);
