@@ -1,5 +1,6 @@
 import {ethers, Wallet} from "ethers";
 import {base64, formatEther, parseEther} from "ethers/lib/utils";
+import {getExchanger} from "./rpc";
 
 export const tokensNet71 = {
 	usdt: "0x7d682e65efc5c13bf4e394b8f376c48e6bae0355", // net71 faucet usdt,
@@ -35,11 +36,13 @@ export async function attach(name, addr, rpcProvider) {
 	const {abi} = require(`./abi/${name}.json`);
 	return new ethers.Contract(addr, abi, rpcProvider);
 }
-export async function depositEthV2(wallet: Wallet, exchange: string, app:string, config: any) {
+export async function depositEthV2(wallet: Wallet, app:string, config: any) {
 	let appCoinAmount = parseEther("0.001");
-	const contract = new ethers.Contract(exchange, abi, wallet);
-	const ethIn = await contract.previewDepositETH(appCoinAmount);
-	const {transactionHash} = await contract.depositAppETH(
+	const exchangeAddr = await getExchanger();
+	console.log(`exchange ${exchangeAddr}`)
+	const exchangeContract = await attach("SwapExchange", exchangeAddr, wallet);
+	const ethIn = await exchangeContract.previewDepositETH(appCoinAmount);
+	const {transactionHash} = await exchangeContract.depositAppETH(
 		app, appCoinAmount, wallet.address,
 		{value: ethIn.mul(2)}).then(waitTx);
 	console.log(`deposit eth to app ${app}, tx hash ${transactionHash}`);
