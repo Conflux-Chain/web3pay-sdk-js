@@ -31,9 +31,13 @@ export function getDeadline(diff: number = 1000) {
 export function waitTx(tx:any) {
 	return tx.wait();
 }
+export async function attach(name, addr, rpcProvider) {
+	const {abi} = require(`./abi/${name}.json`);
+	return new ethers.Contract(addr, abi, rpcProvider);
+}
 export async function depositEthV2(wallet: Wallet, exchange: string, app:string, config: any) {
-	const contract = new ethers.Contract(exchange, abi, wallet);
 	let appCoinAmount = parseEther("0.001");
+	const contract = new ethers.Contract(exchange, abi, wallet);
 	const ethIn = await contract.previewDepositETH(appCoinAmount);
 	const {transactionHash} = await contract.depositAppETH(
 		app, appCoinAmount, wallet.address,
@@ -65,13 +69,26 @@ export async function buildBillingKey(msg:string, pk:string) {
 	console.log(`raw json key length `, str.length)
 	return base64.encode(Buffer.from(str))
 }
-export async function buildApiKeySignature(privateKey: string, app: string) {
+
+function buildSeed(app: string) {
 	const seed = JSON.stringify({
 		domain: "web3pay", contract: app
 	})
+	return seed;
+}
+
+export async function buildApiKeySignature(privateKey: string, app: string) {
+	const seed = buildSeed(app);
 	const signature = await ethersSign(seed, privateKey);
 	const base58 = ethers.utils.base58.encode(signature)
 	return {seed, signature, base58}
+}
+export function decodeApiKey(app:string, key:string, log = false) {
+	const signature = ethers.utils.base58.decode(key);
+	const hash = buildSeed(app)
+	const recoveredAddress = ethers.utils.verifyMessage(hash, signature)
+	log && console.log(`decodeApiKey key ${key}\n app ${app} \n message ${hash} \n recoveredAddress ${recoveredAddress}`)
+	return recoveredAddress;
 }
 export async function ethersSign(msg: string, pk:string) {
 	const wallet = new ethers.Wallet(pk)
@@ -106,5 +123,14 @@ export const keypress = async (msg = '') => {
 		resolve(0)
 	}))
 }
+async function test() {
+	const[,,pk, app] = process.argv;
+	const key = await buildApiKeySignature(pk, app)
+	const addr = decodeApiKey(app, key.base58);
+	console.log(`decodeApiKey ${addr}`)
+}
+if (module === require.main) {
+	test().then()
+}
 
-export {billing, initWeb3payClient, getWeb3pay} from "./rpc"
+export {billing, initWeb3payClient, getWeb3pay} from "./rpc";

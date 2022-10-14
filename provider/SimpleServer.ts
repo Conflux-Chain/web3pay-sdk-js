@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import * as http from "http";
 import {IncomingMessage, RequestListener, ServerResponse} from "http";
-import {accountInfo, buildBillingKey} from "../lib/lib";
-import {billing, initWeb3payClient} from "../lib/rpc";
+import {accountInfo, buildBillingKey, decodeApiKey} from "../lib/lib";
+import {billing, getVipInfo, initWeb3payClient, initWeb3payVipClient} from "../lib/rpc";
 
 require('dotenv').config()
 let {PROVIDER_PORT: port, PROVIDER_PK: pk, APP: app, RPC_ENDPOINT, RPC_BILLING} = process.env;
 const billingUrls = new Set(["/a-valuable-resource", "/billing-1", "/billing-2", "/billing-3"])
+const vipUrls = new Set(["/vip-test"])
 async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 	const urlObj = new URL(req.url, `http://${req.headers.host}`)
 	const {pathname: url} = urlObj;
@@ -33,6 +34,16 @@ async function requestListener(req: IncomingMessage, res:http.ServerResponse) {
 		const data = {code, message, headers: req.headers, billingResult}
 		res.end(JSON.stringify(data));
 		return
+	} else if (vipUrls.has(url)) {
+		let apiKey = req.headers['customer-key'];
+		console.log(`api key ${apiKey}`)
+		const addr = decodeApiKey(app, apiKey.toString(), true)
+		const vipInfo = await getVipInfo(addr)
+
+		res.writeHead(200);
+		const data = {code: 0, headers: req.headers, address: addr, vipInfo}
+		res.end(JSON.stringify(data));
+		return
 	}
 
 	res.writeHead(200);
@@ -45,6 +56,7 @@ async function main() {
 	const key = await buildBillingKey(app!, pk);
 	console.log(`using billing key`, key)
 	initWeb3payClient(RPC_BILLING, key, 1000)
+	await initWeb3payVipClient(RPC_ENDPOINT, app);
 	await serve();
 }
 async function serve() {
