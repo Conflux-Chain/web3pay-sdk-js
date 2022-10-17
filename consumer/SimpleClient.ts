@@ -27,11 +27,11 @@ async function main() {
 	const appCoin = await balanceOf(app!, wallet.address, RPC_ENDPOINT!)
 	await initWeb3payVipClient(RPC_ENDPOINT, app,);
 	const vipInfo = await getVipInfo(wallet.address);
-	if (vipInfo.expireAt.toNumber() * 1000 < Date.now()) {
+	if (vipInfo.expireAt * 1000 < Date.now()) {
 		console.log(`vip expired, buy now...`)
 		await buyVipCard(wallet)
 	} else {
-		console.log(`vip expires at ${new Date(vipInfo.expireAt.toNumber() * 1000).toISOString()}`)
+		console.log(`vip expires at ${new Date(vipInfo.expireAt * 1000).toISOString()}`)
 	}
 	if (appCoin == '0.0') {
 		// await keypress(`press any key to continue`)
@@ -41,6 +41,7 @@ async function main() {
 	}
 
 	const {seed, signature, base58} = await buildApiKeySignature(privateKey!, app!);
+	console.log(`key ${base58}`)
 	const rpcInfo: ConnectionInfo = {
 		url: `http://localhost:${port}`,
 		headers: {
