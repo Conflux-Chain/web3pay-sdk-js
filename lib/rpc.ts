@@ -44,6 +44,7 @@ export async function initWeb3payVipClient(rpcUrl:string, app:string, exitWhenFa
     const {abi: templateAbi} = require("./abi/CardTemplate.json");
     let templateAddr = await web3pay.cardShopContract.template();
     web3pay.templateContract = new ethers.Contract(templateAddr, templateAbi, rpcProvider);
+    await updateVipInfoCache()
     //
     try {
         // const templates = await web3pay.templateContract.list(0, 100)
@@ -90,8 +91,23 @@ export async function buyVipCard(wallet: Wallet, count0: number = 0) {
     const vipInf = await getVipInfo(wallet.address);
     console.log(`vip info updated, expire at ${vipInf.expireAt} / ${new Date(vipInf.expireAt.toNumber() * 1000).toISOString()}`)
 }
-export async function getVipInfo(account: string) : Promise<{expireAt: BigNumber;
+async function updateVipInfoCache(delay = 10_000) {
+    try {
+        for (const account of Object.keys(vipInfoCache)) {
+            await getVipInfo(account, false)
+        }
+    } catch (e) {
+        console.log(`updateVipInfoCache error:`, e)
+    }
+    setTimeout(()=>updateVipInfoCache(delay), delay)
+}
+const vipInfoCache = {}
+export async function getVipInfo(account: string, useCache = true) : Promise<{expireAt: BigNumber;
     props: { keys: string[]; values: string[]}}> {
+    let cache = useCache ? vipInfoCache[account] : undefined;
+    if (cache) {
+        return cache;
+    }
     if (!web3pay.trackerContract) {
         console.log(`web3pay vip client not init`)
         return {expireAt: BigNumber.from(0), props: {keys: [], values: []}}
@@ -99,6 +115,9 @@ export async function getVipInfo(account: string) : Promise<{expireAt: BigNumber
     return web3pay.trackerContract.getVipInfo(account).then(res=>{
         const {expireAt, props: [keys,values]} = res
         return {expireAt, keys, values}
+    }).then(res=>{
+        vipInfoCache[account] = res;
+        return res;
     });
 }
 export function initWeb3payClient(billingUrl: string, billingApiKey: string, timeout: number = 1000, userAgent:string = "web3pay client") {

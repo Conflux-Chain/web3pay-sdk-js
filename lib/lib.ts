@@ -86,11 +86,22 @@ export async function buildApiKeySignature(privateKey: string, app: string) {
 	const base58 = ethers.utils.base58.encode(signature)
 	return {seed, signature, base58}
 }
+const apiKeyCache = {}
 export function decodeApiKey(app:string, key:string, log = false) {
+	const appCache = (apiKeyCache[app] || {})[key]
+	if (appCache) {
+		return appCache;
+	}
 	const signature = ethers.utils.base58.decode(key);
 	const hash = buildSeed(app)
 	const recoveredAddress = ethers.utils.verifyMessage(hash, signature)
 	log && console.log(`decodeApiKey key ${key}\n app ${app} \n message ${hash} \n recoveredAddress ${recoveredAddress}`)
+	if (apiKeyCache[app]) {
+		apiKeyCache[app][key] = recoveredAddress;
+	} else {
+		apiKeyCache[app] = {[key]: recoveredAddress};
+	}
+
 	return recoveredAddress;
 }
 export async function ethersSign(msg: string, pk:string) {
