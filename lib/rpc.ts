@@ -89,7 +89,7 @@ export async function buyVipCard(wallet: Wallet, count0: number = 0) {
     const shopWithWallet = web3pay.cardShopContract.connect(wallet);
     await shopWithWallet.buyWithEth(wallet.address, id, count, {value: ethIn}).then(waitTx);
     const vipInf = await getVipInfo(wallet.address);
-    console.log(`vip info updated, expire at ${vipInf.expireAt} / ${new Date(vipInf.expireAt.toNumber() * 1000).toISOString()}`)
+    console.log(`vip info updated, expire at ${vipInf.expireAt} / ${new Date(vipInf.expireAt * 1000).toISOString()}`)
 }
 async function updateVipInfoCache(delay = 10_000) {
     try {
@@ -102,7 +102,7 @@ async function updateVipInfoCache(delay = 10_000) {
     setTimeout(()=>updateVipInfoCache(delay), delay)
 }
 const vipInfoCache = {}
-export async function getVipInfo(account: string, useCache = true) : Promise<{expireAt: BigNumber;
+export async function getVipInfo(account: string, useCache = true) : Promise<{expireAt: number;
     props: { keys: string[]; values: string[]}}> {
     let cache = useCache ? vipInfoCache[account] : undefined;
     if (cache) {
@@ -110,11 +110,11 @@ export async function getVipInfo(account: string, useCache = true) : Promise<{ex
     }
     if (!web3pay.trackerContract) {
         console.log(`web3pay vip client not init`)
-        return {expireAt: BigNumber.from(0), props: {keys: [], values: []}}
+        return {expireAt: 0, props: {keys: [], values: []}}
     }
     return web3pay.trackerContract.getVipInfo(account).then(res=>{
         const {expireAt, props: [keys,values]} = res
-        return {expireAt, keys, values}
+        return {expireAt: expireAt.toNumber(), keys, values}
     }).then(res=>{
         vipInfoCache[account] = res;
         return res;
