@@ -1,6 +1,7 @@
 import {HttpClient} from "typed-rest-client/HttpClient"
 import {BigNumber, Contract, ethers, Wallet} from "ethers";
 import {attach, waitTx} from "./lib";
+import {parseEther} from "ethers/lib/utils";
 
 const web3pay : {
     templateContract: Contract;
@@ -85,7 +86,8 @@ export async function buyVipCard(wallet: Wallet, count0: number = 0) {
     console.log(`exchangeAddr ${exchangeAddr}`)
     const exchangeContract = await attach("SwapExchange", exchangeAddr, wallet);
     const count = count0 || ( duration > 600 ? 1 : Math.ceil(600/ duration)) // 10 minutes at least
-    const ethIn = await exchangeContract.previewDepositETH(price * count);
+    let payEth = (BigInt(price) * BigInt(count)).toString();
+    const ethIn = await exchangeContract.previewDepositETH(payEth);
     const shopWithWallet = web3pay.cardShopContract.connect(wallet);
     await shopWithWallet.buyWithEth(wallet.address, id, count, {value: ethIn}).then(waitTx);
     const vipInf = await getVipInfo(wallet.address);
