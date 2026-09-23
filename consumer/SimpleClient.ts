@@ -8,10 +8,11 @@ import {
 	keypress,
 	tokensNet71
 } from "../lib/lib";
-import {ConnectionInfo, fetchJson} from "ethers/lib/utils";
+import {HttpClient} from "typed-rest-client/HttpClient";
 import {buyVipCard, getVipInfo, initWeb3payVipClient} from "../lib/rpc";
 
 require('dotenv').config()
+const client = new HttpClient("SimpleClient");
 
 
 async function buildSignature(privateKey: string, app: string) {
@@ -42,7 +43,7 @@ async function main() {
 
 	const {seed, signature, base58} = await buildApiKeySignature(privateKey!, app!);
 	console.log(`key ${base58}`)
-	const rpcInfo: ConnectionInfo = {
+	const rpcInfo = {
 		url: `http://localhost:${port}`,
 		headers: {
 			"Customer-Key": base58,
@@ -54,9 +55,11 @@ async function main() {
 	await request(rpcInfo, '/vip-test?foo=wa')
 	console.log(`api key length `, rpcInfo.headers!['Customer-Key'].toString().length)
 }
-async function request(rpcInfo: ConnectionInfo, path = '/') {
+async function request(rpcInfo: { url: string; headers?: Record<string, string> }, path = '/') {
 	rpcInfo = {...rpcInfo, url: rpcInfo.url + path}
-	const result = await fetchJson(rpcInfo)
+	const result = await client.get(rpcInfo.url, rpcInfo.headers)
+		.then(res => res.readBody())
+		.then(JSON.parse)
 	console.log(`result of [${rpcInfo.url}] is `, result)
 }
 

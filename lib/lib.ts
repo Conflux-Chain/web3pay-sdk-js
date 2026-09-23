@@ -1,5 +1,5 @@
 import {ethers, Wallet} from "ethers";
-import {base64, base58, formatEther, parseEther} from "ethers/lib/utils";
+import bs58 from "bs58";
 import {getExchanger} from "./rpc";
 
 export const tokensNet71 = {
@@ -37,15 +37,15 @@ export async function attach(name, addr, rpcProvider) {
 	return new ethers.Contract(addr, abi, rpcProvider);
 }
 export async function depositEthV2(wallet: Wallet, app:string, config: any) {
-	let appCoinAmount = parseEther("0.001");
+	let appCoinAmount = ethers.parseEther("0.001");
 	const exchangeAddr = await getExchanger();
 	console.log(`exchange ${exchangeAddr}`)
 	const exchangeContract = await attach("SwapExchange", exchangeAddr, wallet);
 	const ethIn = await exchangeContract.previewDepositETH(appCoinAmount);
-	const {transactionHash} = await exchangeContract.depositAppETH(
+	const receipt = await exchangeContract.depositAppETH(
 		app, appCoinAmount, wallet.address,
-		{value: ethIn.mul(2)}).then(waitTx);
-	console.log(`deposit eth to app ${app}, tx hash ${transactionHash}`);
+		{value: ethIn * 2n}).then(waitTx);
+	console.log(`deposit eth to app ${app}, tx hash ${receipt.hash}`);
 }
 export async function deposit2app(wallet: Wallet, app: string, config: any) {
 	const contract = new ethers.Contract(app, abi, wallet)
@@ -53,15 +53,15 @@ export async function deposit2app(wallet: Wallet, app: string, config: any) {
 	const api = new  ethers.Contract(apiAddr, abi, wallet)
 	const {__router: swapRouter, wcfx, usdt} = config
 	const receipt = await api.depositNativeValue(
-		swapRouter, parseEther("0.02"),
-		[wcfx, usdt], app, getDeadline(), {value: parseEther("1")}
+		swapRouter, ethers.parseEther("0.02"),
+		[wcfx, usdt], app, getDeadline(), {value: ethers.parseEther("1")}
 	).then(tx=>tx.wait());
-	console.log(`deposit tx hash ${receipt.transactionHash}`)
+	console.log(`deposit tx hash ${receipt.hash}`)
 }
 export async function balanceOf(app: string, account: string, rpcEndpoint: string) {
 	const contract = new ethers.Contract(app, abi, ethers.getDefaultProvider(rpcEndpoint))
-	// const balance = await contract.balanceOf(account, 0).then(formatEther) // v1
-	const balance = await contract.balanceOf(account).then(([coin,])=>coin).then(formatEther) //v2
+	// const balance = await contract.balanceOf(account, 0).then(ethers.formatEther) // v1
+	const balance = await contract.balanceOf(account).then(([coin,])=>coin).then(ethers.formatEther) //v2
 	const name = await contract.name().catch(()=>app) // catch for v2, name() was moved to VipCoin
 	console.log(`balance of ${account} , contract ${app} [${name}] , `, balance)
 	return balance
@@ -70,7 +70,7 @@ export async function buildBillingKey(msg:string, pk:string) {
 	const sig = await ethersSign(msg, pk);
 	const str = JSON.stringify({msg, sig});
 	console.log(`raw json key length `, str.length)
-	return base64.encode(Buffer.from(str))
+	return ethers.encodeBase64(Buffer.from(str))
 }
 
 function buildSeed(app: string) {
@@ -83,7 +83,7 @@ function buildSeed(app: string) {
 export async function buildApiKeySignature(privateKey: string, app: string) {
 	const seed = buildSeed(app);
 	const signature = await ethersSign(seed, privateKey);
-	const base58str = base58.encode(signature)
+	const base58str = bs58.encode(Buffer.from(signature.slice(2), "hex"))
 	return {seed, signature, base58: base58str}
 }
 const apiKeyCache = {}
@@ -92,9 +92,9 @@ export function decodeApiKey(app:string, key:string, log = false) {
 	if (appCache) {
 		return appCache;
 	}
-	const signature = base58.decode(key);
+	const signature = `0x${Buffer.from(bs58.decode(key)).toString("hex")}`;
 	const hash = buildSeed(app)
-	const recoveredAddress = ethers.utils.verifyMessage(hash, signature)
+	const recoveredAddress = ethers.verifyMessage(hash, signature)
 	log && console.log(`decodeApiKey key ${key}\n app ${app} \n message ${hash} \n recoveredAddress ${recoveredAddress}`)
 	if (apiKeyCache[app]) {
 		apiKeyCache[app][key] = recoveredAddress;
@@ -121,7 +121,7 @@ export async function accountInfo(pk:string, rpcEndpoint: string) {
 
 	const wallet = new ethers.Wallet(pk, provider)
 	console.log(`account ${wallet.address}`)
-	const ether = await wallet.getBalance().then(formatEther)
+	const ether = await provider.getBalance(wallet.address).then(ethers.formatEther)
 	console.log(`balance ${ether}`)
 	if (ether == '0.0') {
 		console.log(`visit testnet faucet: https://efaucet.confluxnetwork.org/`)

@@ -1,7 +1,6 @@
 import {HttpClient} from "typed-rest-client/HttpClient"
-import {BigNumber, Contract, ethers, Wallet} from "ethers";
+import {Contract, ethers, Wallet} from "ethers";
 import {attach, waitTx} from "./lib";
-import {parseEther} from "ethers/lib/utils";
 
 const web3pay : {
     templateContract: Contract;
@@ -73,23 +72,25 @@ export async function getExchanger() {
 }
 export async function buyVipCard(wallet: Wallet, count0: number = 0) {
     const [list, total] = await web3pay.templateContract.list(0, 100);
-    if (total < 1) {
+    const totalCount = Number(total);
+    if (totalCount < 1) {
         console.log(`no card template found`);
         return;
     }
     const last = list.slice(-1)[0]
     const {price, duration, name, id} = last
-    console.log(`last card template ${name}, price ${price}, duration ${duration}, id or object is `, id?.toNumber() || last)
+    console.log(`last card template ${name}, price ${price}, duration ${duration}, id or object is `, id?.toString() || last)
     const asset = await getAsset(web3pay.appContract);
     console.log(`asset is ${asset}`)
     const exchangeAddr = await getExchanger();
     console.log(`exchangeAddr ${exchangeAddr}`)
     const exchangeContract = await attach("SwapExchange", exchangeAddr, wallet);
-    const count = count0 || ( duration > 600 ? 1 : Math.ceil(600/ duration)) // 10 minutes at least
+    const durationSec = Number(duration);
+    const count = count0 || ( durationSec > 600 ? 1 : Math.ceil(600 / durationSec)) // 10 minutes at least
     let payEth = (BigInt(price) * BigInt(count)).toString();
     const ethIn = await exchangeContract.previewDepositETH(payEth);
     const shopWithWallet = web3pay.cardShopContract.connect(wallet);
-    await shopWithWallet.buyWithEth(wallet.address, id, count, {value: ethIn}).then(waitTx);
+    await (shopWithWallet as any).buyWithEth(wallet.address, id, count, {value: ethIn}).then(waitTx);
     const vipInf = await getVipInfo(wallet.address);
     console.log(`vip info updated, expire at ${vipInf.expireAt} / ${new Date(vipInf.expireAt * 1000).toISOString()}`)
 }
@@ -116,7 +117,7 @@ export async function getVipInfo(account: string, useCache = true) : Promise<{ex
     }
     return web3pay.trackerContract.getVipInfo(account).then(res=>{
         const {expireAt, props: [keys,values]} = res
-        return {expireAt: expireAt.toNumber(), keys, values}
+        return {expireAt: Number(expireAt), props: {keys, values}}
     }).then(res=>{
         vipInfoCache[account] = res;
         return res;
