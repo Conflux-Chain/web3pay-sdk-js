@@ -1,6 +1,6 @@
 {
   "name": "web3pay-sdk-js",
-  "version": "0.0.11",
+  "version": "0.1.0",
   "main": "lib/lib.js",
   "types": "lib/lib.d.ts",
   "repository": "https://github.com/Conflux-Chain/web3pay-sdk-js.git",
